@@ -1,10 +1,26 @@
 <?php
 // include "db.php";
 session_start();
+
+// Generate CSRF token for contact form
+if (empty($_SESSION["csrf_token"])) {
+  $_SESSION["csrf_token"] = bin2hex(random_bytes(32));
+}
+
+// Display contact form messages
+$contact_message = "";
+$contact_message_type = "";
+if (isset($_SESSION["contact_message"])) {
+  $contact_message = $_SESSION["contact_message"];
+  $contact_message_type = $_SESSION["contact_type"];
+  unset($_SESSION["contact_message"]);
+  unset($_SESSION["contact_type"]);
+}
+
 // Redirect to dashboard if already logged in
-if (isset($_SESSION['user_id'])) {
-    header('Location: dashboard.php');
-    exit();
+if (isset($_SESSION["user_id"])) {
+  header("Location: dashboard.php");
+  exit();
 }
 ?>
 <!DOCTYPE html>
@@ -28,6 +44,7 @@ if (isset($_SESSION['user_id'])) {
             --accent-hover: #2563eb;
             --gold: #fbbf24;
             --success: #10b981;
+            --danger: #ef4444;
             --text-primary: #f8fafc;
             --text-secondary: #cbd5e1;
             --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -88,6 +105,12 @@ if (isset($_SESSION['user_id'])) {
             display: flex;
             align-items: center;
             gap: 12px;
+        }
+
+        .logo-container img {
+            height: 50px;
+            width: auto;
+            filter: drop-shadow(0 2px 8px rgba(251, 191, 36, 0.3));
         }
 
         .brand-name {
@@ -444,6 +467,220 @@ if (isset($_SESSION['user_id'])) {
             50% { opacity: 1; transform: translateX(-50%) translateY(10px); }
         }
 
+        /* Eligibility Checker Section */
+        .eligibility-checker {
+            background: var(--secondary);
+            padding: 80px 0;
+            position: relative;
+        }
+
+        .checker-wrapper {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 3rem;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .checker-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .checker-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .checker-title {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .checker-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .checker-form {
+            display: grid;
+            gap: 2rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            position: relative;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 18px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Poppins', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group select {
+            cursor: pointer;
+        }
+
+        .form-group option {
+            background: var(--secondary);
+            color: var(--text-primary);
+        }
+
+        .btn-check-eligibility {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, var(--gold) 0%, #f59e0b 100%);
+            color: var(--primary);
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(251, 191, 36, 0.4);
+            margin-top: 1rem;
+        }
+
+        .btn-check-eligibility:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(251, 191, 36, 0.5);
+        }
+
+        .eligibility-result {
+            margin-top: 2rem;
+            padding: 2rem;
+            border-radius: 16px;
+            text-align: center;
+            display: none;
+            animation: slideIn 0.4s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-eligible {
+            background: rgba(16, 185, 129, 0.15);
+            border: 2px solid var(--success);
+        }
+
+        .result-not-eligible {
+            background: rgba(251, 191, 36, 0.15);
+            border: 2px solid var(--gold);
+        }
+
+        .result-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-title {
+            font-size: 2rem;
+            font-weight: 800;
+            margin-bottom: 1rem;
+        }
+
+        .result-message {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            line-height: 1.6;
+        }
+
+        .eligible-forces {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+        }
+
+        .force-badge {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .result-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+
+        .btn-result {
+            padding: 14px 32px;
+            border-radius: 50px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+        }
+
+        .btn-register {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-register:hover {
+            background: #059669;
+            transform: translateY(-2px);
+        }
+
+        .btn-explore {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-explore:hover {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
         /* Sections */
         section {
             padding: 100px 0;
@@ -483,7 +720,7 @@ if (isset($_SESSION['user_id'])) {
 
         /* Features Section */
         .features-modern {
-            background: var(--secondary);
+            background: var(--primary);
         }
 
         .features-grid-modern {
@@ -573,7 +810,7 @@ if (isset($_SESSION['user_id'])) {
 
         /* About Section */
         .about-modern {
-            background: var(--primary);
+            background: var(--secondary);
         }
 
         .about-grid-modern {
@@ -692,7 +929,7 @@ if (isset($_SESSION['user_id'])) {
 
         /* Testimonials */
         .testimonials-modern {
-            background: var(--secondary);
+            background: var(--primary);
         }
 
         .testimonials-grid {
@@ -809,202 +1046,230 @@ if (isset($_SESSION['user_id'])) {
 
         /* Contact Section */
         .contact-modern {
-            background: var(--primary);
+            background: var(--secondary);
         }
 
-        .contact-grid-modern {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 2rem;
-        }
-
-        .contact-card-modern {
+        /* Contact Form Styles */
+        .contact-form-wrapper {
+            max-width: 700px;
+            margin: 0 auto;
             background: rgba(255, 255, 255, 0.05);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 3rem 2rem;
-            text-align: center;
-            transition: all 0.3s ease;
+            padding: 3rem;
         }
 
-        .contact-card-modern:hover {
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 18px;
             background: rgba(255, 255, 255, 0.08);
-            transform: translateY(-10px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .contact-icon-modern {
-            font-size: 3rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .contact-card-modern h3 {
-            font-size: 1.5rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .contact-card-modern p {
-            color: var(--text-secondary);
-            margin-bottom: 1.5rem;
-        }
-
-        .contact-link {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 600;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.95rem;
             transition: all 0.3s ease;
         }
 
-        .contact-link:hover {
-            color: var(--gold);
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.12);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: var(--text-secondary);
+            opacity: 0.6;
+        }
+
+        .error-message {
+            display: block;
+            color: var(--danger);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            min-height: 20px;
+        }
+
+        .alert {
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            color: #10b981;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #ef4444;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.05rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+        }
+
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(59, 130, 246, 0.5);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-text,
+        .btn-loader {
+            display: inline-block;
+        }
+
+        .btn-loader {
+            display: none;
         }
 
         /* Footer Styles */
-.footer-modern {
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-    color: #e2e8f0;
-    padding: 60px 0 0;
-    border-top: 1px solid rgba(251, 191, 36, 0.2);
-    margin-top: 80px;
-}
+        .footer-modern {
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            color: #e2e8f0;
+            padding: 60px 0 0;
+            border-top: 1px solid rgba(251, 191, 36, 0.2);
+            margin-top: 80px;
+        }
 
-.container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 20px;
-}
+        .footer-content-modern {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 40px;
+            padding-bottom: 40px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.1);
+        }
 
-.footer-content-modern {
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 40px;
-    padding-bottom: 40px;
-    border-bottom: 1px solid rgba(226, 232, 240, 0.1);
-}
+        .footer-brand {
+            max-width: 320px;
+        }
 
-.footer-brand {
-    max-width: 320px;
-}
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
 
-.footer-logo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 16px;
-}
+        .footer-logo img {
+            height: 40px;
+            width: auto;
+        }
 
-.footer-logo span {
-    font-size: 24px;
-    font-weight: 700;
-    color: #fbbf24;
-    letter-spacing: -0.5px;
-}
+        .footer-logo span {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fbbf24;
+            letter-spacing: -0.5px;
+        }
 
-.footer-brand p {
-    font-size: 14px;
-    line-height: 1.6;
-    color: #94a3b8;
-}
+        .footer-brand p {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #94a3b8;
+        }
 
-.footer-column h4 {
-    font-size: 16px;
-    font-weight: 600;
-    color: #fbbf24;
-    margin-bottom: 20px;
-    letter-spacing: 0.5px;
-}
+        .footer-column h4 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #fbbf24;
+            margin-bottom: 20px;
+            letter-spacing: 0.5px;
+        }
 
-.footer-column ul {
-    list-style: none;
-}
+        .footer-column ul {
+            list-style: none;
+        }
 
-.footer-column ul li {
-    margin-bottom: 12px;
-}
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
 
-.footer-column ul li a {
-    color: #cbd5e1;
-    text-decoration: none;
-    font-size: 14px;
-    transition: all 0.3s ease;
-    display: inline-block;
-}
+        .footer-column ul li a {
+            color: #cbd5e1;
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
 
-.footer-column ul li a:hover {
-    color: #fbbf24;
-    transform: translateX(4px);
-}
+        .footer-column ul li a:hover {
+            color: #fbbf24;
+            transform: translateX(4px);
+        }
 
-.footer-bottom-modern {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 30px 0;
-}
+        .footer-bottom-modern {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 0;
+        }
 
-.footer-bottom-modern p {
-    font-size: 14px;
-    color: #94a3b8;
-}
+        .footer-bottom-modern p {
+            font-size: 14px;
+            color: #94a3b8;
+        }
 
-.footer-social {
-    display: flex;
-    gap: 16px;
-}
+        .footer-social {
+            display: flex;
+            gap: 16px;
+        }
 
-.footer-social a {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(251, 191, 36, 0.1);
-    border-radius: 8px;
-    color: #fbbf24;
-    transition: all 0.3s ease;
-    text-decoration: none;
-}
+        .footer-social a {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(251, 191, 36, 0.1);
+            border-radius: 8px;
+            color: #fbbf24;
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
 
-.footer-social a:hover {
-    background: #fbbf24;
-    color: #0f172a;
-    transform: translateY(-3px);
-}
+        .footer-social a:hover {
+            background: #fbbf24;
+            color: #0f172a;
+            transform: translateY(-3px);
+        }
 
-.footer-social a svg {
-    width: 20px;
-    height: 20px;
-}
-
-/* Responsive Design */
-@media (max-width: 968px) {
-    .footer-content-modern {
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
-    }
-    
-    .footer-brand {
-        max-width: 100%;
-    }
-}
-
-@media (max-width: 640px) {
-    .footer-content-modern {
-        grid-template-columns: 1fr;
-        gap: 30px;
-    }
-    
-    .footer-bottom-modern {
-        flex-direction: column;
-        gap: 20px;
-        text-align: center;
-    }
-    
-    .footer-social {
-        justify-content: center;
-    }
-}
+        .footer-social a svg {
+            width: 20px;
+            height: 20px;
+        }
 
         /* Responsive Design */
         @media (max-width: 968px) {
@@ -1043,8 +1308,7 @@ if (isset($_SESSION['user_id'])) {
             }
 
             .features-grid-modern,
-            .testimonials-grid,
-            .contact-grid-modern {
+            .testimonials-grid {
                 grid-template-columns: 1fr;
             }
 
@@ -1058,17 +1322,28 @@ if (isset($_SESSION['user_id'])) {
             }
 
             .footer-content-modern {
-                grid-template-columns: 1fr;
-                gap: 2rem;
+                grid-template-columns: 1fr 1fr;
+                gap: 30px;
             }
 
-            .footer-bottom-modern {
-                flex-direction: column;
-                gap: 1rem;
-                text-align: center;
+            .footer-brand {
+                max-width: 100%;
             }
 
             .section-title-modern {
+                font-size: 2rem;
+            }
+
+            .contact-form-wrapper,
+            .checker-wrapper {
+                padding: 2rem;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .checker-title {
                 font-size: 2rem;
             }
         }
@@ -1087,6 +1362,34 @@ if (isset($_SESSION['user_id'])) {
                 width: 100%;
                 justify-content: center;
             }
+
+            .footer-content-modern {
+                grid-template-columns: 1fr;
+                gap: 30px;
+            }
+
+            .footer-bottom-modern {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+
+            .footer-social {
+                justify-content: center;
+            }
+
+            .contact-form-wrapper,
+            .checker-wrapper {
+                padding: 1.5rem;
+            }
+
+            .result-actions {
+                flex-direction: column;
+            }
+
+            .btn-result {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -1096,12 +1399,7 @@ if (isset($_SESSION['user_id'])) {
         <div class="container">
             <div class="nav-brand">
                 <div class="logo-container">
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="#2c5f2d" stroke="#fbbf24" stroke-width="2"/>
-                        <path d="M20 8L24 16H16L20 8Z" fill="#fbbf24"/>
-                        <rect x="18" y="16" width="4" height="12" fill="#fbbf24"/>
-                        <path d="M12 28L20 24L28 28" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
+                    <img src="\frontend\image\gurkhalogo.png" type="image" alt="Loading....">
                     <span class="brand-name">Gurkha Marga</span>
                 </div>
             </div>
@@ -1152,8 +1450,8 @@ if (isset($_SESSION['user_id'])) {
                 </p>
                 
                 <div class="hero-cta-modern">
-                    <a href="register.php" class="btn btn-hero-primary">
-                        <span>Start Free Training</span>
+                    <a href="#eligibility" class="btn btn-hero-primary">
+                        <span>Check Your Eligibility</span>
                         <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                             <path d="M7.5 15L12.5 10L7.5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
@@ -1186,10 +1484,10 @@ if (isset($_SESSION['user_id'])) {
                             <p>Exercise Guides</p>
                         </div>
                     </div>
-                    <div class="stat-item-modern">
+                    <!-- <div class="stat-item-modern">
                         <div class="stat-icon-wrapper">
-                            <span class="stat-icon">🎯</span>
-                        </div>
+                            <span class="stat-icon"></span>
+                        </div> -->
                         <div class="stat-content">
                             <h3>99%</h3>
                             <p>Free Forever</p>
@@ -1214,6 +1512,69 @@ if (isset($_SESSION['user_id'])) {
         </div>
     </section>
 
+    <!-- Eligibility Checker Section -->
+    <section id="eligibility" class="eligibility-checker">
+        <div class="container">
+            <div class="checker-wrapper">
+                <div class="checker-header">
+                    <h2 class="checker-title">Check Your <span class="gradient-text">Eligibility</span></h2>
+                    <p class="checker-subtitle">Find out if you meet the age requirements for army recruitment</p>
+                </div>
+
+                <form class="checker-form" id="eligibilityForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthYear">Birth Year *</label>
+                            <input type="number" id="birthYear" name="birthYear" placeholder="Enter year (e.g., 2005)" min="1980" max="2020" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="birthMonth">Birth Month *</label>
+                            <select id="birthMonth" name="birthMonth" required>
+                                <option value="">Select Month</option>
+                                <option value="1">January</option>
+                                <option value="2">February</option>
+                                <option value="3">March</option>
+                                <option value="4">April</option>
+                                <option value="5">May</option>
+                                <option value="6">June</option>
+                                <option value="7">July</option>
+                                <option value="8">August</option>
+                                <option value="9">September</option>
+                                <option value="10">October</option>
+                                <option value="11">November</option>
+                                <option value="12">December</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="birthDay">Birth Day *</label>
+                            <input type="number" id="birthDay" name="birthDay" placeholder="Day (1-31)" min="1" max="31" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="targetForce">Target Force *</label>
+                            <select id="targetForce" name="targetForce" required>
+                                <option value="">Select Force</option>
+                                <option value="british">British Army</option>
+                                <option value="nepal">Nepal Army</option>
+                                <option value="indian">Indian Army</option>
+                                <option value="singapore">Singapore Police Force</option>
+                                <option value="french">French Foreign Legion</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-check-eligibility">
+                        <span>Check My Eligibility</span>
+                    </button>
+                </form>
+
+                <div id="eligibilityResult" class="eligibility-result"></div>
+            </div>
+        </div>
+    </section>
+
     <!-- Features Section -->
     <section id="features" class="features-modern">
         <div class="container">
@@ -1231,7 +1592,7 @@ if (isset($_SESSION['user_id'])) {
                     </div>
                     <h3>Eligibility Checker</h3>
                     <p>Instantly verify if you meet the height, weight, and age requirements for your target service</p>
-                    <a href="#" class="feature-link">Learn more →</a>
+                    <a href="#eligibility" class="feature-link">Learn more →</a>
                 </div>
                 
                 <div class="feature-card-modern">
@@ -1375,8 +1736,8 @@ if (isset($_SESSION['user_id'])) {
                             <span>ST</span>
                         </div>
                         <div class="testimonial-info">
-                            <h4>Suman Tamang</h4>
-                            <p>Nepali Army - 2024</p>
+                            <h4>Raj Rasaily</h4>
+                            <p>Nepal Army - 2024</p>
                         </div>
                         <div class="quote-icon">"</div>
                     </div>
@@ -1420,103 +1781,180 @@ if (isset($_SESSION['user_id'])) {
             <div class="section-header-modern">
                 <span class="section-badge">CONTACT US</span>
                 <h2 class="section-title-modern">Get In <span class="gradient-text">Touch</span></h2>
-                <p class="section-subtitle-modern">Have questions? We're here to help you succeed</p>
+                <p class="section-subtitle-modern">Send us your queries and we'll get back to you soon.</p>
             </div>
-            
-            <div class="contact-grid-modern">
-                <div class="contact-card-modern">
-                    <div class="contact-icon-modern">📧</div>
-                    <h3>Email Us</h3>
-                    <p>gurkhamarga@gmail.com</p>
-                    <a href="mailto:gurkhamarga@gmail.com" class="contact-link">Send Email →</a>
-                </div>
-                
-                <div class="contact-card-modern">
-                    <div class="contact-icon-modern">📍</div>
-                    <h3>Visit Us</h3>
-                    <p>Kathmandu, Nepal</p>
-                    <a href="#" class="contact-link">Get Directions →</a>
-                </div>
-                
-                <div class="contact-card-modern">
-                    <div class="contact-icon-modern">💬</div>
-                    <h3>Live Chat</h3>
-                    <p>24/7 Support Available</p>
-                    <a href="#" class="contact-link">Start Chat →</a>
-                </div>
+
+            <div class="contact-form-wrapper">
+                <?php if ($contact_message): ?>
+                    <div class="alert alert-<?php echo htmlspecialchars(
+                      $contact_message_type,
+                    ); ?>">
+                        <?php if ($contact_message_type === "success"): ?>
+                            ✓
+                        <?php else: ?>
+                            ⚠
+                        <?php endif; ?>
+                        <?php echo htmlspecialchars($contact_message); ?>
+                    </div>
+                <?php endif; ?>
+
+                <form action="process-contact.php" method="POST" id="contactForm" novalidate>
+                    <!-- CSRF Token -->
+                    <input type="hidden" name="csrf_token" value="<?php echo $_SESSION[
+                      "csrf_token"
+                    ]; ?>">
+
+                    <div class="form-group">
+                        <label for="username">Your Name *</label>
+                        <input 
+                            type="text" 
+                            id="username"
+                            name="username" 
+                            placeholder="Enter your full name" 
+                            required
+                            minlength="2"
+                            maxlength="100"
+                            value="<?php echo isset(
+                              $_SESSION["old_input"]["username"],
+                            )
+                              ? htmlspecialchars(
+                                $_SESSION["old_input"]["username"],
+                              )
+                              : ""; ?>"
+                        >
+                        <span class="error-message" id="username-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input 
+                            type="email" 
+                            id="email"
+                            name="email" 
+                            placeholder="your.email@example.com" 
+                            required
+                            maxlength="255"
+                            value="<?php echo isset(
+                              $_SESSION["old_input"]["email"],
+                            )
+                              ? htmlspecialchars(
+                                $_SESSION["old_input"]["email"],
+                              )
+                              : ""; ?>"
+                        >
+                        <span class="error-message" id="email-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Contact Number *</label>
+                        <input 
+                            type="tel" 
+                            id="phone"
+                            name="phone" 
+                            placeholder="Your contact number" 
+                            required
+                            pattern="[0-9]{10,15}"
+                            maxlength="15"
+                            value="<?php echo isset(
+                              $_SESSION["old_input"]["phone"],
+                            )
+                              ? htmlspecialchars(
+                                $_SESSION["old_input"]["phone"],
+                              )
+                              : ""; ?>"
+                        >
+                        <span class="error-message" id="phone-error"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message">Your Message *</label>
+                        <textarea 
+                            name="message" 
+                            id="message" 
+                            placeholder="Type your query here..." 
+                            required
+                            minlength="10"
+                            maxlength="1000"
+                            rows="5"
+                        ><?php echo isset($_SESSION["old_input"]["message"])
+                          ? htmlspecialchars($_SESSION["old_input"]["message"])
+                          : ""; ?></textarea>
+                        <span class="error-message" id="message-error"></span>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="submitBtn">
+                        <span class="btn-text">Send Message</span>
+                        <span class="btn-loader">Sending...</span>
+                    </button>
+                </form>
             </div>
         </div>
     </section>
 
-    <!-- <!-- Footer -->
-<footer class="footer-modern">
-    <div class="container">
-        <div class="footer-content-modern">
-            <div class="footer-brand">
-                <div class="footer-logo">
-                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="20" cy="20" r="18" fill="#2c5f2d" stroke="#fbbf24" stroke-width="2"/>
-                        <path d="M20 8L24 16H16L20 8Z" fill="#fbbf24"/>
-                        <rect x="18" y="16" width="4" height="12" fill="#fbbf24"/>
-                        <path d="M12 28L20 24L28 28" stroke="#fbbf24" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span>Gurkha Marga</span>
+    <!-- Footer -->
+    <footer class="footer-modern">
+        <div class="container">
+            <div class="footer-content-modern">
+                <div class="footer-brand">
+                    <div class="footer-logo">
+                        <img src="\frontend\image\gurkhalogo.png" alt="Loading....">
+                        <span>Gurkha Marga</span>
+                    </div>
+                    <p>Empowering youth with the right guidance for army recruitment. Your success is our mission.</p>
                 </div>
-                <p>Empowering youth with the right guidance for army recruitment. Your success is our mission.</p>
+                
+                <div class="footer-column">
+                    <h4>Platform</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#about">About</a></li>
+                        <li><a href="register.php">Register</a></li>
+                        <li><a href="login.php">Login</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Resources</h4>
+                    <ul>
+                        <li><a href="#">FAQ</a></li>
+                        <li><a href="#">Training Tips</a></li>
+                        <li><a href="#testimonials">Success Stories</a></li>
+                        <li><a href="#">Blog</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                        <li><a href="#">Cookie Policy</a></li>
+                    </ul>
+                </div>
             </div>
             
-            <div class="footer-column">
-                <h4>Platform</h4>
-                <ul>
-                    <li><a href="#features">Features</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="register.php">Register</a></li>
-                    <li><a href="login.php">Login</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4>Resources</h4>
-                <ul>
-                    <li><a href="#">FAQ</a></li>
-                    <li><a href="#">Training Tips</a></li>
-                    <li><a href="#">Success Stories</a></li>
-                    <li><a href="#">Blog</a></li>
-                </ul>
-            </div>
-            
-            <div class="footer-column">
-                <h4>Legal</h4>
-                <ul>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
-                    <li><a href="#">Cookie Policy</a></li>
-                </ul>
+            <div class="footer-bottom-modern">
+                <p>&copy; 2026 Gurkha Marga. All rights reserved. Built for providing guidance for Gurkhas 🪖</p>
+                <div class="footer-social">
+                    <a href="https://www.facebook.com/SahilShrestha" aria-label="Facebook" target="_blank">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        </svg>
+                    </a>
+                    <a href="https://www.instagram.com/shresthasahil7/" aria-label="Instagram" target="_blank" rel="noopener noreferrer">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                        </svg>
+                    </a>
+                    <a href="#" aria-label="YouTube">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                        </svg>
+                    </a>
+                </div>
             </div>
         </div>
-        
-        <div class="footer-bottom-modern">
-            <p>&copy; 2026 Gurkha Marga. All rights reserved. Built for providing guidence for Gurkhas🪖</p>
-            <div class="footer-social">
-                <a href="#" aria-label="Facebook">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                    </svg>
-                </a>
-                <a href="#" aria-label="Instagram">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
-                    </svg>
-                </a>
-                <a href="#" aria-label="YouTube">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-                    </svg>
-                </a>
-            </div>
-        </div>
-    </div>
-</footer>
+    </footer>
 
     <script>
         // Navbar scroll effect
@@ -1573,6 +2011,161 @@ if (isset($_SESSION['user_id'])) {
                 }
             });
         });
+
+        // Eligibility Checker
+        document.getElementById('eligibilityForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const year = parseInt(document.getElementById('birthYear').value);
+            const month = parseInt(document.getElementById('birthMonth').value);
+            const day = parseInt(document.getElementById('birthDay').value);
+            const targetForce = document.getElementById('targetForce').value;
+            
+            // Calculate age
+            const birthDate = new Date(year, month - 1, day);
+            const today = new Date();
+            let age = today.getFullYear() - birthDate.getFullYear();
+            const monthDiff = today.getMonth() - birthDate.getMonth();
+            
+            if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                age--;
+            }
+            
+            // Age criteria
+            const criteria = {
+                british: { min: 17, max: 21, name: "British Army" },
+                nepal: { min: 18, max: 21, name: "Nepal Army" },
+                indian: { min: 17, max: 21, name: "Indian Army" },
+                singapore: { min: 18, max: 21, name: "Singapore Police Force" },
+                french: { min: 17, max: 35, name: "French Foreign Legion" }
+            };
+            
+            const resultDiv = document.getElementById('eligibilityResult');
+            
+            if (!targetForce) {
+                resultDiv.innerHTML = `
+                    <div class="result-not-eligible">
+                        <div class="result-icon">⚠️</div>
+                        <h3 class="result-title">Please Select a Force</h3>
+                        <p class="result-message">Choose your target force to check eligibility.</p>
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+                return;
+            }
+            
+            // Check which forces the user is eligible for
+            const eligibleForces = [];
+            for (const [key, value] of Object.entries(criteria)) {
+                if (age >= value.min && age <= value.max) {
+                    eligibleForces.push(value.name);
+                }
+            }
+            
+            const selected = criteria[targetForce];
+            const isEligible = age >= selected.min && age <= selected.max;
+            
+            if (isEligible) {
+                resultDiv.innerHTML = `
+                    <div class="result-eligible">
+                        <div class="result-icon">🎉</div>
+                        <h3 class="result-title">Congratulations! You're Eligible</h3>
+                        <p class="result-message">
+                            You are <strong>${age} years old</strong> and meet the age requirements for <strong>${selected.name}</strong> 
+                            (Age: ${selected.min}-${selected.max} years).
+                        </p>
+                        ${eligibleForces.length > 1 ? `
+                            <p class="result-message">You're also eligible for:</p>
+                            <div class="eligible-forces">
+                                ${eligibleForces.filter(f => f !== selected.name).map(f => `<span class="force-badge">${f}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                        <div class="result-actions">
+                            <a href="register.php" class="btn-result btn-register">Create Account & Start Training</a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultDiv.innerHTML = `
+                    <div class="result-not-eligible">
+                        <div class="result-icon">ℹ️</div>
+                        <h3 class="result-title">Not Eligible for ${selected.name}</h3>
+                        <p class="result-message">
+                            You are <strong>${age} years old</strong>. The ${selected.name} requires candidates to be between 
+                            <strong>${selected.min}-${selected.max} years old</strong>.
+                        </p>
+                        ${eligibleForces.length > 0 ? `
+                            <p class="result-message">However, you're eligible for:</p>
+                            <div class="eligible-forces">
+                                ${eligibleForces.map(f => `<span class="force-badge">${f}</span>`).join('')}
+                            </div>
+                            <div class="result-actions">
+                                <a href="register.php" class="btn-result btn-register">Create Account & Start Training</a>
+                            </div>
+                        ` : `
+                            <p class="result-message">
+                                You can still explore our basic exercise plans and training resources to stay fit and prepared for future opportunities!
+                            </p>
+                            <div class="result-actions">
+                                <a href="#features" class="btn-result btn-explore">Explore Training Plans</a>
+                            </div>
+                        `}
+                    </div>
+                `;
+            }
+            
+            resultDiv.style.display = 'block';
+            resultDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+
+        // Contact Form Validation
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            let isValid = true;
+            
+            // Clear previous errors
+            document.querySelectorAll('.error-message').forEach(el => el.textContent = '');
+            
+            // Validate username
+            const username = document.getElementById('username').value.trim();
+            if (username.length < 2) {
+                document.getElementById('username-error').textContent = 'Name must be at least 2 characters';
+                isValid = false;
+            }
+            
+            // Validate email
+            const email = document.getElementById('email').value.trim();
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                document.getElementById('email-error').textContent = 'Please enter a valid email address';
+                isValid = false;
+            }
+            
+            // Validate phone
+            const phone = document.getElementById('phone').value.trim();
+            if (!/^[0-9]{10,15}$/.test(phone)) {
+                document.getElementById('phone-error').textContent = 'Please enter a valid phone number (10-15 digits)';
+                isValid = false;
+            }
+            
+            // Validate message
+            const message = document.getElementById('message').value.trim();
+            if (message.length < 10) {
+                document.getElementById('message-error').textContent = 'Message must be at least 10 characters';
+                isValid = false;
+            }
+            
+            if (!isValid) {
+                e.preventDefault();
+            } else {
+                // Show loading state
+                document.querySelector('.btn-text').style.display = 'none';
+                document.querySelector('.btn-loader').style.display = 'inline';
+                document.getElementById('submitBtn').disabled = true;
+            }
+        });
     </script>
 </body>
 </html>
+
+<?php // Clear old input after displaying
+unset($_SESSION["old_input"]); ?>  
